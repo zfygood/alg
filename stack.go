@@ -167,7 +167,6 @@ func sliceModeQ() {
 
 	sliceQ := &sliceQueue{arr: make([]int, 0)}
 	sliceQ.enQueue(1)
-	sliceQ.enQueue(2)
 	fmt.Println(sliceQ.getFront())
 	fmt.Println(sliceQ.getBack())
 	fmt.Println(sliceQ.size())
@@ -389,11 +388,270 @@ func (p *MinStack) min() int {
 	}
 }
 
+type stackQueue struct {
+	aStack *sliceStackR
+	bStack *sliceStackR
+}
+
+//栈模拟队列
+func (p *stackQueue) push(data int) {
+	p.aStack.push(data)
+}
+
+func (p *stackQueue) pop() int {
+	if p.bStack.isEmpty() {
+		for !p.aStack.isEmpty() {
+			p.bStack.push(p.aStack.pop())
+		}
+	}
+	return p.bStack.pop().(int)
+
+}
+
+type sliceQueueR struct {
+	arr []interface{}
+	sync.RWMutex
+}
+
+func (p *sliceQueueR) isEmpty() bool {
+	return p.size() == 0
+}
+func (p *sliceQueueR) size() int {
+	return len(p.arr)
+}
+func (p *sliceQueueR) getFront() interface{} {
+	if p.isEmpty() {
+		return nil
+	}
+	return p.arr[0]
+}
+
+func (p *sliceQueueR) getBack() interface{} {
+	if p.isEmpty() {
+		return nil
+	}
+	return p.arr[p.size()-1]
+}
+
+func (p *sliceQueueR) popBack() interface{} {
+	p.Lock()
+	defer p.Unlock()
+	if p.isEmpty() {
+		return nil
+	}
+	ret := p.arr[p.size()-1]
+	p.arr = p.arr[:p.size()-1]
+	return ret
+}
+func (p *sliceQueueR) deQueue() interface{} {
+	p.Lock()
+	defer p.Unlock()
+	if p.isEmpty() {
+		return nil
+	}
+	ret := p.arr[0]
+	p.arr = p.arr[1:]
+	return ret
+}
+
+func (p *sliceQueueR) enQueue(item interface{}) {
+	p.Lock()
+	defer p.Unlock()
+	p.arr = append(p.arr, item)
+}
+
+func (p *sliceQueueR) enQueueF(item interface{}) {
+	p.Lock()
+	defer p.Unlock()
+	i := []interface{}{item}
+	p.arr = append(i, p.arr[:]...)
+}
+func (p *sliceQueueR) remove(item interface{}) {
+	p.Lock()
+	defer p.Unlock()
+	for k, v := range p.arr {
+		if v == item {
+			p.arr = append(p.arr[:k], p.arr[k+1:]...)
+		}
+	}
+}
+func (p *sliceQueueR) list() []interface{} {
+	return p.arr
+}
+
+type user struct {
+	id   int
+	name string
+	seq  int
+}
+
+type loginQueue struct {
+	queue *sliceQueueR
+}
+
+func (p *loginQueue) enQueue(u *user) {
+	p.queue.enQueue(u)
+	u.seq = p.queue.size()
+}
+
+func (p *loginQueue) deQueue(u *user) {
+	p.queue.deQueue()
+	p.updateSeq()
+}
+func (p *loginQueue) deQueueUser(u *user) {
+	p.queue.remove(u)
+	p.updateSeq()
+}
+func (p *loginQueue) updateSeq() {
+	i := 1
+	for _, v := range p.queue.list() {
+		u := v.(*user)
+		u.seq = i
+		i++
+	}
+}
+
+func (p *loginQueue) printQueue() {
+	for _, v := range p.queue.list() {
+		fmt.Println(v.(*user))
+	}
+}
+
+type hashSet struct {
+	m map[interface{}]bool
+	sync.RWMutex
+}
+
+func newSet() *hashSet {
+	return &hashSet{m: map[interface{}]bool{}}
+}
+func (s *hashSet) add(item interface{}) {
+	s.Lock()
+	defer s.Unlock()
+	s.m[item] = true
+}
+func (s *hashSet) remove(item interface{}) {
+	s.Lock()
+	defer s.Unlock()
+	delete(s.m, item)
+}
+func (s *hashSet) contains(item interface{}) bool {
+	s.RLock()
+	defer s.RUnlock()
+	_, ok := s.m[item]
+	return ok
+
+}
+func (s *hashSet) len() int {
+	return len(s.list())
+}
+
+func (s *hashSet) list() []interface{} {
+	s.RLock()
+	defer s.RUnlock()
+	var list []interface{}
+	for item := range s.m {
+		list = append(list, item)
+	}
+	return list
+}
+func (s *hashSet) clear() {
+	s.RLock()
+	defer s.RUnlock()
+	s.m = map[interface{}]bool{}
+}
+func (s *hashSet) isEmpty() bool {
+	return len(s.list()) == 0
+}
+
+type LRU struct {
+	cacheSize int
+	queue     *sliceQueueR
+	hastSet   *hashSet
+}
+
+func (p *LRU) isQueueFull() bool {
+	return p.queue.size() == p.cacheSize
+}
+func (p *LRU) enQueue(item interface{}) {
+	if p.isQueueFull() {
+		p.hastSet.remove(p.queue.popBack())
+	}
+	p.queue.enQueue(item)
+	p.hastSet.add(item)
+}
+
+func (p *LRU) accessPage(item int) {
+	if !p.hastSet.contains(item) {
+		p.enQueue(item)
+	} else if p.queue.getFront() != item {
+		p.queue.remove(item)
+		p.queue.enQueueF(item)
+	}
+
+}
+
+func (p *LRU) printQueue() {
+	for !p.queue.isEmpty() {
+		fmt.Println(p.queue.deQueue())
+	}
+}
+
+//车票行程
+func printResult(input map[string]string) {
+	rInput := map[string]string{}
+	for k, v := range input {
+		rInput[v] = k
+	}
+
+	var start string
+	for k, _ := range input {
+		if _, ok := rInput[k]; !ok {
+			start = k
+		}
+	}
+
+	if start == "" {
+		fmt.Println("")
+	}
+
+	to := input[start]
+	//fmt.Println(start, "->", to)
+	//start = to
+	//to = input[to]
+	for to != "" {
+		fmt.Println(",", start, "->", to)
+		start = to
+		to = input[to]
+	}
+	fmt.Println()
+
+}
+
+type pairs struct {
+	first  int
+	second int
+}
+
+func findPairs(arr []int) bool {
+	sumPairs := map[int]*pairs{}
+	l := len(arr)
+	for i := 0; i < l; i++ {
+		for j := i + 1; j < l; j++ {
+			sum := arr[i] + arr[j]
+			if _, ok := sumPairs[sum]; !ok {
+				sumPairs[sum] = &pairs{i, j}
+			} else {
+				p := sumPairs[sum]
+				fmt.Print(arr[p.first], arr[p.second], arr[i], arr[j])
+				fmt.Println()
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func main() {
 
-	//r := isPopSerial("12345", "32541")
-	//fmt.Println(r)
-	//stack := createStack([]int{5, 4, 3, 2, 1})
-	//reverseStack(stack)
-	//printStack("", stack)
 }
