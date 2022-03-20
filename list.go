@@ -578,10 +578,5 @@ func PrintNodeN(info string, node *LNodeN) {
 	fmt.Println()
 }
 func main() {
-	//l1, l2 := createNodeT()
-	//r := add(l1, l2)
-	head := &LNode{}
-	CreateNode(head, 3)
-	PrintNode("", head)
 
 }
