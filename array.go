@@ -275,6 +275,58 @@ func getNumXOR(arr []int) int {
 
 }
 
+func getNumXor(arr []int) {
+	if arr == nil || len(arr) < 1 {
+		return
+	}
+	result := 0
+	position := uint(0)
+
+	for _, v := range arr {
+		result ^= v
+	}
+	tmpResult := result
+
+	for i := result; i&1 == 0; i = i >> 1 {
+		position++
+	}
+
+	for _, v := range arr {
+		if (v>>position)&1 == 1 {
+			result ^= v
+		}
+	}
+
+	fmt.Println(result)
+
+	fmt.Println(result ^ tmpResult)
+}
+
+func getNumOdd(arr []int) {
+	if arr == nil || len(arr) < 1 {
+		return
+	}
+	data := map[int]int{}
+	for _, v := range arr {
+		if r, ok := data[v]; ok {
+			if r == 1 {
+				data[v] = 0
+			} else {
+				data[v] = 1
+			}
+		} else {
+			data[v] = 1
+		}
+	}
+
+	for _, v := range arr {
+		if data[v] == 1 {
+			fmt.Println(v)
+		}
+	}
+
+}
+
 func main() {
 
 }
